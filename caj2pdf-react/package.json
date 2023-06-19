@@ -1,0 +1,50 @@
+{
+  "name": "caj2pdf-react",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@testing-library/jest-dom": "^5.14.1",
+    "@testing-library/react": "^13.0.0",
+    "@testing-library/user-event": "^13.2.1",
+    "@types/jest": "^27.0.1",
+    "@types/node": "^16.7.13",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "antd": "^5.4.7",
+    "concurrently": "^7.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "typescript": "^4.4.2",
+    "watch": "^1.0.2",
+    "web-vitals": "^2.1.0"
+  },
+  "scripts": {
+    "start": "concurrently \"yarn watch:ts\" \"npm run watch:wasm\"",
+    "build": "yarn build:wasm && npm run build:ts",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "watch:ts": "react-scripts start",
+    "watch:wasm": "watch \"yarn build:wasm\" ./wasm",
+    "build:ts": "react-scripts build",
+    "build:wasm": "cd wasm && GOOS=js GOARCH=wasm go build -o ../public/caj2pdf.wasm && cd .. && echo \"\\033[0;32mcompiled wasm successfully!\\033[0m\""
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
