@@ -6,5 +6,5 @@ cd mupdf
 bash build.sh
 mv build/wasm/release/mutool.wasm  ../caj2pdf-react/public/mutool.wasm
 mv build/wasm/release/mutool  ../caj2pdf-react/public/mutool.js
-cd ../caj2pdf-react && yarn build
+cd ../caj2pdf-react && yarn && yarn build
 ```

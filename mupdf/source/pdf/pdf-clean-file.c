@@ -23,6 +23,7 @@
 #include "mupdf/fitz.h"
 #include "mupdf/pdf.h"
 
+#include <stdio.h>
 #include <string.h>
 
 typedef struct
@@ -412,7 +413,46 @@ static void retainpages(fz_context *ctx, globals *glo, int argc, char **argv)
 	pdf_drop_obj(ctx, root);
 }
 
-int pdf_clean_file(fz_context *ctx, char *infile, int size,char **out_buffer, char *password, pdf_write_options *opts, int argc, char *argv[])
+static void pdf_add_outline(fz_context *ctx, fz_outline_iterator* iter, char* outline) 
+{
+	int prev_level = 1;
+	int offset = 0;
+	int len = strlen(outline);
+	int cnt = 0;
+	while (1) {
+		int current_level;
+		int page;
+		char title[1024]={0};
+		char uri[20] = {0};
+		int current_read;	
+		sscanf(&outline[offset], "%d %d %[^\n]%n", &current_level, &page, &title,&current_read);
+		sprintf(uri,"#page=%d",page);	
+		fz_outline_item item = {title, uri, 0};
+		
+		printf("title:%s uri:%s\n",item.title,item.uri);
+		if (prev_level == current_level) {
+			iter->insert(ctx,iter,&item);
+		}
+		if (prev_level < current_level) {
+			iter->prev(ctx,iter);
+			iter->down(ctx,iter);
+			iter->insert(ctx,iter,&item);
+		}
+		if (prev_level > current_level) {
+			iter->up(ctx,iter);
+			iter->next(ctx,iter);
+			iter->insert(ctx,iter,&item);
+		}
+		
+		prev_level = current_level;
+		offset+=current_read+1;
+		if (offset == len) {
+			break;
+		}
+	}
+}
+
+int pdf_clean_file(fz_context *ctx, char *infile, int size,char *outline,char **out_buffer, char *password, pdf_write_options *opts, int argc, char *argv[])
 {
 	globals glo = { 0 };
 
@@ -433,14 +473,19 @@ int pdf_clean_file(fz_context *ctx, char *infile, int size,char **out_buffer, ch
 
 		fz_buffer* buffer = fz_new_buffer(ctx, 1);
 		fz_output* out=fz_new_output_with_buffer(ctx,buffer);
+		
+		fz_outline_iterator* iter = glo.doc->super.outline_iterator(ctx, glo.doc);
+		pdf_add_outline(ctx, iter, outline);
+		fz_drop_outline_iterator(ctx, iter);
+
 		pdf_write_document(ctx, glo.doc, out,opts);
 		fz_close_output(ctx, out);
+		fz_drop_output(ctx, out);
 		
 		char *ptr;
 		out_size=fz_buffer_storage(ctx,buffer,&ptr);
 		*out_buffer=malloc(out_size);
 		memcpy(*out_buffer,ptr,out_size);
-
 		fz_drop_buffer(ctx,buffer);
 	}
 	fz_always(ctx)
@@ -455,39 +500,7 @@ int pdf_clean_file(fz_context *ctx, char *infile, int size,char **out_buffer, ch
 	return out_size;
 }
 
-
-#include <emscripten/emscripten.h>
-
-EMSCRIPTEN_KEEPALIVE int mupdf_clean_length(char *input,int size) {
-	char *password = "";
-	pdf_write_options opts = pdf_default_write_options;
-	int errors = 0;
-	fz_context *ctx;
-	char *buffer;
-	int output_size;
-
-	opts.dont_regenerate_id = 1;
-
-	ctx = fz_new_context(NULL, NULL, FZ_STORE_UNLIMITED);
-	if (!ctx)
-	{
-		fprintf(stderr, "cannot initialise context\n");
-		exit(1);
-	}
-	fz_try(ctx)
-	{
-		output_size=pdf_clean_file(ctx, input,size, &buffer, password, &opts, 0, NULL);
-	}
-	fz_catch(ctx)
-	{
-		errors++;
-	}
-	fz_drop_context(ctx);
-	free(buffer);
-	return output_size;
-}
-
-EMSCRIPTEN_KEEPALIVE char* mupdf_clean(char *input,int size) {
+char* internal_mupdf_clean(char* input,int size,char* outline,int *length) {
 	char *password = "";
 	pdf_write_options opts = pdf_default_write_options;
 	int errors = 0;
@@ -504,7 +517,10 @@ EMSCRIPTEN_KEEPALIVE char* mupdf_clean(char *input,int size) {
 	}
 	fz_try(ctx)
 	{
-		pdf_clean_file(ctx, input,size, &buffer, password, &opts, 0, NULL);
+		int output_size=pdf_clean_file(ctx, input,size, outline, &buffer, password, &opts, 0, NULL);
+		if (length!=NULL) {
+			*length = output_size;
+		}
 	}
 	fz_catch(ctx)
 	{
@@ -512,4 +528,16 @@ EMSCRIPTEN_KEEPALIVE char* mupdf_clean(char *input,int size) {
 	}
 	fz_drop_context(ctx);
 	return buffer;
+}
+
+#include <emscripten/emscripten.h>
+EMSCRIPTEN_KEEPALIVE int mupdf_clean_length(char *input,int size,char *outline) {
+	int length=0;
+	char *buffer = internal_mupdf_clean(input, size, outline, &length);
+	free(buffer);
+	return length;
+}
+
+EMSCRIPTEN_KEEPALIVE char* mupdf_clean(char *input,int size,char *outline) {
+	return internal_mupdf_clean(input, size, outline, NULL);
 }

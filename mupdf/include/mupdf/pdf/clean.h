@@ -28,7 +28,7 @@
 /*
 	Read infile, and write selected pages to outfile with the given options.
 */
-int pdf_clean_file(fz_context *ctx, char *infile,int size, char **out, char *password, pdf_write_options *opts, int retainlen, char *retainlist[]);
-char* mupdf_clean(char *input,int size);
-int mupdf_clean_length(char *input,int size);
+int pdf_clean_file(fz_context *ctx, char *infile,int size, char* outline, char **out, char *password, pdf_write_options *opts, int retainlen, char *retainlist[]);
+char* mupdf_clean(char *input,int size,char *outline);
+int mupdf_clean_length(char *input,int size,char *outline);
 #endif

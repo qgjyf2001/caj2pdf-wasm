@@ -18,7 +18,8 @@ func New(file io.ReadSeeker) CAJParser {
 	return parser
 }
 
-func (parser CAJParser) Convert(file io.ReadSeeker) []byte {
+func (parser CAJParser) Convert(file io.ReadSeeker) ([]byte, string) {
+	toc := getToc(file)
 
 	writer := new(bytes.Buffer)
 	extractData(file, writer)
@@ -27,5 +28,5 @@ func (parser CAJParser) Convert(file io.ReadSeeker) []byte {
 	writer = new(bytes.Buffer)
 	handlePages(extractedReader, writer, &parser)
 
-	return writer.Bytes()
+	return writer.Bytes(), generateOutlineString(toc)
 }

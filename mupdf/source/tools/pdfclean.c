@@ -81,6 +81,7 @@ __attribute__((__used__)) void wasm_export() {
 	FILE *f;
 	int len;
 	char *data;
+	const char* unused = "1 1 1\n";
 	
 	f=fopen("1.pdf","rb");
 	fseek(f,0,SEEK_END);
@@ -92,8 +93,8 @@ __attribute__((__used__)) void wasm_export() {
 
 	int output_size;
 	
-	mupdf_clean(data,len);
-	mupdf_clean_length(data,len);
+	mupdf_clean(data,len,unused);
+	mupdf_clean_length(data,len,unused);
 }
 
 int pdfclean_main(int argc, char **argv)
